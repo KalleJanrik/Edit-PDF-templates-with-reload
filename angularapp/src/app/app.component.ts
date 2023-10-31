@@ -2,6 +2,8 @@ import { HttpClient } from '@angular/common/http';
 import { Component, AfterViewInit, ElementRef, ViewChild } from '@angular/core';
 import * as ace from 'ace-builds';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { Subject } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
 
 @Component({
   selector: 'app-root',
@@ -10,7 +12,8 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 })
 export class AppComponent implements AfterViewInit {
   template: any = { htmlContent: '' };
-  pdfUrl: SafeResourceUrl; // For displaying PDF
+  pdfUrl: SafeResourceUrl;
+  editorContentChange$ = new Subject<string>();
 
   @ViewChild('editor', { static: false })
   editorDiv!: ElementRef;
@@ -19,8 +22,12 @@ export class AppComponent implements AfterViewInit {
 
   constructor(private http: HttpClient, private sanitizer: DomSanitizer) {
     this.pdfUrl = this.sanitizer.bypassSecurityTrustResourceUrl('about:blank');
-  }
 
+    // Debounce the editor changes by 1000ms (1 second)
+    this.editorContentChange$.pipe(debounceTime(1000)).subscribe(content => {
+      this.generatePdf();
+    });
+  }
 
   ngOnInit(): void {
     this.loadTemplate(1);
@@ -45,6 +52,7 @@ export class AppComponent implements AfterViewInit {
       this.editor.on('change', () => {
         const content = this.editor.getValue();
         this.template.htmlContent = content;
+        this.editorContentChange$.next(content);
       });
       this.editor.setValue(this.template.htmlContent, 1);
     }
@@ -57,7 +65,6 @@ export class AppComponent implements AfterViewInit {
   }
 
   generatePdf() {
-    // Your .NET backend should be set up to accept HTML and return PDF
     this.http.post('api/templates/generate-pdf', { htmlContent: this.template.htmlContent }, { responseType: 'blob' }).subscribe(blob => {
       const objectURL = URL.createObjectURL(blob);
       this.pdfUrl = this.sanitizer.bypassSecurityTrustResourceUrl(objectURL);
