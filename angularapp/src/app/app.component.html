@@ -1,0 +1,14 @@
+<h1>This is text</h1>
+<div *ngIf="template">
+  <h2>Edit Template</h2>
+  <div style="display: flex; justify-content: space-between;">
+    <!-- Ace Editor -->
+    <div style="flex: 1; height: 400px; margin-right: 10px;" #editor></div>
+
+    <!-- PDF Display -->
+    <iframe style="flex: 1; height: 400px;" [src]="pdfUrl" type="application/pdf"></iframe>
+  </div>
+
+  <button (click)="save()">Save</button>
+  <button (click)="generatePdf()">Generate PDF</button>
+</div>
